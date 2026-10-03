@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#050814">
+    <title>CYBER ARENA: 3D SURVIVOR</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.svg">
+    <link rel="icon" type="image/svg+xml" href="icon-192.svg">
+    <link rel="stylesheet" href="style.css">
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // CDN フォールバック
+        if (typeof THREE === 'undefined') {
+            document.write('<script src="https://unpkg.com/three@0.128.0/build/three.min.js"><\/script>');
+        }
+        // Service Worker 登録（完全オフライン対応）
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => {
+                    console.log('SW registration note:', err);
+                });
+            });
+        }
+    </script>
+</head>
+<body>
+    <!-- 3Dレンダリング用コンテナ -->
+    <div id="canvas-container"></div>
+
+    <!-- UIレイヤー -->
+    <div id="ui-layer">
+        <!-- 上部ヘッダーHUD -->
+        <div class="hud-top">
+            <div class="player-status">
+                <div class="level-row">
+                    <span class="level-badge" id="level-badge">LV 1</span>
+                    <span class="stat-label" id="hp-text">100 / 100</span>
+                </div>
+                <div class="bar-container">
+                    <div class="hp-bar" id="hp-bar"></div>
+                </div>
+                <div class="bar-container" style="height: 6px; margin-top: 2px;">
+                    <div class="exp-bar" id="exp-bar"></div>
+                </div>
+            </div>
+
+            <div class="score-panel">
+                <div class="timer" id="timer-display">00:00</div>
+                <div class="kills-score" id="kills-display">討伐: 0体 | SCORE: 0</div>
+            </div>
+        </div>
+
+        <!-- PC向け操作ガイド -->
+        <div class="controls-guide">
+            <div><span class="key-tag">W</span><span class="key-tag">A</span><span class="key-tag">S</span><span class="key-tag">D</span> 移動</div>
+            <div><span class="key-tag">SPACE</span> / <span class="key-tag">左クリック</span> 斬撃攻撃</div>
+            <div><span class="key-tag">SHIFT</span> / <span class="key-tag">右クリック</span> ダッシュ回避</div>
+            <div><span class="key-tag">E</span> 全方位バースト必殺技</div>
+        </div>
+
+        <!-- モバイル向けバーチャルコントローラー -->
+        <div id="touch-controls">
+            <!-- 左ジョイスティック -->
+            <div id="joystick-area">
+                <div id="joystick-knob"></div>
+            </div>
+
+            <!-- 右アクションボタン -->
+            <div id="action-buttons">
+                <button class="touch-btn btn-burst" id="btn-burst" title="全方位バースト">
+                    <span class="btn-icon">💥</span>
+                    <span>BURST</span>
+                </button>
+                <button class="touch-btn btn-dash" id="btn-dash" title="ダッシュ回避">
+                    <span class="btn-icon">⚡️</span>
+                    <span>DASH</span>
+                </button>
+                <button class="touch-btn btn-attack" id="btn-attack" title="斬撃攻撃">
+                    <span class="btn-icon">⚔️</span>
+                    <span>ATTACK</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- レベルアップモーダル -->
+    <div id="level-up-modal">
+        <h2 class="modal-title">LEVEL UP!</h2>
+        <p class="modal-subtitle">強化するスキルを1つ選択してください</p>
+        <div class="cards-container" id="upgrade-cards">
+            <!-- 動的にカードが挿入されます -->
+        </div>
+    </div>
+
+    <!-- ゲームオーバーモーダル -->
+    <div id="game-over-modal">
+        <h2 class="go-title">SYSTEM OFFLINE</h2>
+        <div class="go-stats">
+            <div class="go-stat-line">
+                <span>生存時間</span>
+                <span class="go-stat-val" id="go-time">00:00</span>
+            </div>
+            <div class="go-stat-line">
+                <span>討伐数</span>
+                <span class="go-stat-val" id="go-kills">0体</span>
+            </div>
+            <div class="go-stat-line">
+                <span>最終レベル</span>
+                <span class="go-stat-val" id="go-level">LV 1</span>
+            </div>
+            <div class="go-stat-line">
+                <span>トータルスコア</span>
+                <span class="go-stat-val" id="go-score">0</span>
+            </div>
+        </div>
+        <button class="btn-restart" id="btn-restart">RESTART</button>
+    </div>
+
+    <!-- スクリプト読み込み -->
+    <script src="sound.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
