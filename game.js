@@ -530,51 +530,132 @@
             this.hp = this.maxHp;
             this.mesh.position.copy(position);
             scene.add(this.mesh);
+
+            // 頭上HPバー
+            this.hpBar = this.createHpBar();
+            scene.add(this.hpBar);
+        }
+
+        createHpBar() {
+            const group = new THREE.Group();
+            // 背景（黒）
+            const bgGeo = new THREE.PlaneGeometry(1.4, 0.2);
+            const bgMat = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide });
+            const bg = new THREE.Mesh(bgGeo, bgMat);
+            group.add(bg);
+
+            // ゲージ（赤〜緑）
+            const barGeo = new THREE.PlaneGeometry(1.36, 0.16);
+            const barMat = new THREE.MeshBasicMaterial({ color: 0x00ff66, side: THREE.DoubleSide });
+            this.hpBarFill = new THREE.Mesh(barGeo, barMat);
+            this.hpBarFill.position.z = 0.01;
+            group.add(this.hpBarFill);
+
+            return group;
         }
 
         createCrawlerMesh() {
-            const geo = new THREE.ConeGeometry(0.7, 1.2, 5);
-            const mat = new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.3, metalness: 0.7 });
+            const group = new THREE.Group();
+
+            // 本体（鮮やかなネオンレッド＆自発光）
+            const geo = new THREE.ConeGeometry(0.95, 1.6, 6);
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0xff1744,
+                emissive: 0xff0044,
+                emissiveIntensity: 0.85,
+                roughness: 0.2,
+                metalness: 0.5
+            });
             const m = new THREE.Mesh(geo, mat);
             m.rotation.x = Math.PI / 2;
-            m.position.y = 0.6;
+            m.position.y = 0.8;
             m.castShadow = true;
-            return m;
+            group.add(m);
+
+            // 先端の発光スパイク
+            const tipGeo = new THREE.SphereGeometry(0.28, 8, 8);
+            const tipMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const tip = new THREE.Mesh(tipGeo, tipMat);
+            tip.position.set(0, 0.8, 0.9);
+            group.add(tip);
+
+            // 足元のネオン警告サークル（視認性向上）
+            const ringGeo = new THREE.RingGeometry(0.9, 1.25, 24);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xff0055, side: THREE.DoubleSide });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.y = 0.05;
+            group.add(ring);
+
+            return group;
         }
 
         createShooterMesh() {
             const group = new THREE.Group();
-            const geo = new THREE.DodecahedronGeometry(0.8);
-            const mat = new THREE.MeshStandardMaterial({ color: 0x9333ea, roughness: 0.3, metalness: 0.8 });
+
+            // 本体（ネオンバイオレット＆高発光）
+            const geo = new THREE.DodecahedronGeometry(1.0);
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0xd946ef,
+                emissive: 0xa855f7,
+                emissiveIntensity: 0.9,
+                roughness: 0.2,
+                metalness: 0.6
+            });
             const m = new THREE.Mesh(geo, mat);
             m.castShadow = true;
             group.add(m);
 
-            // コア
-            const eyeGeo = new THREE.SphereGeometry(0.3, 8, 8);
-            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+            // 光るシアンコアアイ（コントラスト強調）
+            const eyeGeo = new THREE.SphereGeometry(0.4, 12, 12);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
             const eye = new THREE.Mesh(eyeGeo, eyeMat);
-            eye.position.set(0, 0, 0.6);
+            eye.position.set(0, 0, 0.7);
             group.add(eye);
 
-            group.position.y = 1.6;
+            // 足元のネオン警告サークル
+            const ringGeo = new THREE.RingGeometry(1.1, 1.45, 24);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xa855f7, side: THREE.DoubleSide });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.y = 0.05;
+            group.add(ring);
+
+            group.position.y = 1.8;
             return group;
         }
 
         createTitanMesh() {
             const group = new THREE.Group();
-            const bodyGeo = new THREE.BoxGeometry(2.4, 3.2, 2.4);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.4, metalness: 0.8 });
+
+            // 超巨大ゴールドボス（発光オレンジ）
+            const bodyGeo = new THREE.BoxGeometry(2.8, 3.6, 2.8);
+            const bodyMat = new THREE.MeshStandardMaterial({
+                color: 0xfbbf24,
+                emissive: 0xf59e0b,
+                emissiveIntensity: 0.7,
+                roughness: 0.3,
+                metalness: 0.7
+            });
             const body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.position.y = 2.0;
+            body.position.y = 2.2;
             body.castShadow = true;
             group.add(body);
 
-            const eyeGeo = new THREE.BoxGeometry(1.6, 0.4, 0.3);
-            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff3b30 });
+            // 巨大バイザーアイ（鮮烈なレッド）
+            const eyeGeo = new THREE.BoxGeometry(2.0, 0.5, 0.4);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
             const eye = new THREE.Mesh(eyeGeo, eyeMat);
-            eye.position.set(0, 2.8, 1.2);
+            eye.position.set(0, 3.1, 1.45);
             group.add(eye);
+
+            // 足元の巨大警告リング
+            const ringGeo = new THREE.RingGeometry(2.6, 3.2, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.y = 0.06;
+            group.add(ring);
 
             return group;
         }
@@ -624,19 +705,50 @@
                     player.takeDamage(this.damage);
                 }
             }
+
+            // 頭上HPバーの更新
+            if (this.hpBar && camera) {
+                const headY = this.type === 'titan' ? 4.2 : (this.type === 'shooter' ? 2.6 : 1.7);
+                this.hpBar.position.set(this.mesh.position.x, this.mesh.position.y + headY, this.mesh.position.z);
+                this.hpBar.quaternion.copy(camera.quaternion);
+
+                const hpRatio = Math.max(0, this.hp / this.maxHp);
+                this.hpBarFill.scale.x = hpRatio;
+                this.hpBarFill.position.x = -0.68 * (1 - hpRatio);
+
+                // HPに応じて色変化（緑 -> 黄 -> 赤）
+                if (hpRatio < 0.3) {
+                    this.hpBarFill.material.color.setHex(0xff0044);
+                } else if (hpRatio < 0.6) {
+                    this.hpBarFill.material.color.setHex(0xffaa00);
+                } else {
+                    this.hpBarFill.material.color.setHex(0x00ff66);
+                }
+            }
         }
 
         shoot() {
             const dir = new THREE.Vector3().subVectors(player.mesh.position, this.mesh.position).normalize();
-            const projGeo = new THREE.SphereGeometry(0.35, 8, 8);
-            const projMat = new THREE.MeshBasicMaterial({ color: 0xff00ff });
-            const proj = new THREE.Mesh(projGeo, projMat);
-            proj.position.copy(this.mesh.position);
-            proj.position.y += 0.5;
-            scene.add(proj);
+            const projGroup = new THREE.Group();
+
+            // 外側ネオンマゼンタ球
+            const outerGeo = new THREE.SphereGeometry(0.45, 8, 8);
+            const outerMat = new THREE.MeshBasicMaterial({ color: 0xff0077 });
+            const outer = new THREE.Mesh(outerGeo, outerMat);
+            projGroup.add(outer);
+
+            // 中心ホワイトコア（高コントラスト発光）
+            const coreGeo = new THREE.SphereGeometry(0.22, 8, 8);
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const core = new THREE.Mesh(coreGeo, coreMat);
+            projGroup.add(core);
+
+            projGroup.position.copy(this.mesh.position);
+            projGroup.position.y += 0.5;
+            scene.add(projGroup);
 
             enemyProjectiles.push({
-                mesh: proj,
+                mesh: projGroup,
                 velocity: dir.multiplyScalar(9),
                 life: 4.0
             });
@@ -659,7 +771,7 @@
                 if (c.material && c.material.color) {
                     const orig = c.material.color.getHex();
                     c.material.color.setHex(0xffffff);
-                    setTimeout(() => { if (c.material) c.material.color.setHex(orig); }, 80);
+                    setTimeout(() => { if (c.material) c.material.color.setHex(orig); }, 120);
                 }
             });
 
@@ -685,6 +797,7 @@
                 spawnExpOrb(this.mesh.position.clone().add(offset));
             }
 
+            if (this.hpBar) scene.remove(this.hpBar);
             scene.remove(this.mesh);
         }
     }
@@ -982,7 +1095,10 @@
 
     function restartGame() {
         // オブジェクトの破棄
-        for (let e of enemies) scene.remove(e.mesh);
+        for (let e of enemies) {
+            scene.remove(e.mesh);
+            if (e.hpBar) scene.remove(e.hpBar);
+        }
         enemies.length = 0;
         for (let p of enemyProjectiles) scene.remove(p.mesh);
         enemyProjectiles.length = 0;
