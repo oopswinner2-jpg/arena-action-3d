@@ -186,9 +186,9 @@
             this.mesh = this.createMesh();
             scene.add(this.mesh);
 
-            // スラッシュエフェクト用メッシュ
+            // スラッシュエフェクト用メッシュ（プレイヤーの正面に完全固定）
             this.slashMesh = this.createSlashEffect();
-            scene.add(this.slashMesh);
+            this.mesh.add(this.slashMesh);
             this.slashTimer = 0;
         }
 
@@ -247,7 +247,14 @@
         }
 
         createSlashEffect() {
-            const shape = new THREE.RingGeometry(1.2, 3.8, 16, 1, 0, Math.PI * 0.9);
+            const innerRadius = 1.0;
+            const outerRadius = 4.2;
+            const angleSpan = Math.PI * 0.85; // 約153度の広角スイング
+            // XY平面で+Y(上)を中心にした扇形
+            const shape = new THREE.RingGeometry(innerRadius, outerRadius, 32, 1, Math.PI / 2 - angleSpan / 2, angleSpan);
+            // X軸回りに +90度回転して、+Y(上)を +Z(プレイヤー正面)に倒す
+            shape.rotateX(Math.PI / 2);
+
             const mat = new THREE.MeshBasicMaterial({
                 color: 0x00f0ff,
                 side: THREE.DoubleSide,
@@ -256,7 +263,7 @@
                 depthWrite: false
             });
             const mesh = new THREE.Mesh(shape, mat);
-            mesh.rotation.x = -Math.PI / 2;
+            mesh.position.set(0, 0.8, 0); // 腰の高さ
             mesh.visible = false;
             return mesh;
         }
@@ -292,9 +299,12 @@
                     moveVec.normalize();
                     this.mesh.position.addScaledVector(moveVec, this.speed * dt);
 
-                    // 進行方向を向く
+                    // 進行方向を向く（最短経路での補間・大回りバグ防止）
                     const targetAngle = Math.atan2(moveVec.x, moveVec.z);
-                    this.mesh.rotation.y = THREE.MathUtils.lerp(this.mesh.rotation.y, targetAngle, 16 * dt);
+                    let diff = targetAngle - this.mesh.rotation.y;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+                    this.mesh.rotation.y += diff * Math.min(1.0, 22 * dt);
                 }
             }
 
@@ -369,6 +379,27 @@
             if (gameTime - this.lastAttackTime < this.attackCooldown) return;
             this.lastAttackTime = gameTime;
 
+            // 周囲の敵を索敵（オートエイム補正）
+            let nearestEnemy = null;
+            let minDist = this.attackRange * 1.4; // 攻撃射程＋余裕
+            for (let enemy of enemies) {
+                if (enemy.dead) continue;
+                const d = this.mesh.position.distanceTo(enemy.mesh.position);
+                if (d < minDist) {
+                    minDist = d;
+                    nearestEnemy = enemy;
+                }
+            }
+
+            // 近くに敵がいれば、その敵の方を向く（正面攻撃の命中を100%保証）
+            if (nearestEnemy) {
+                const toEnemy = new THREE.Vector3().subVectors(nearestEnemy.mesh.position, this.mesh.position);
+                this.mesh.rotation.y = Math.atan2(toEnemy.x, toEnemy.z);
+            } else if (Math.hypot(input.x, input.y) > 0.1) {
+                // 入力がある場合は入力方向を向く
+                this.mesh.rotation.y = Math.atan2(input.x, input.y);
+            }
+
             if (window.soundSystem) window.soundSystem.playSlash();
 
             // 剣の振りアニメーション
@@ -378,13 +409,10 @@
                 setTimeout(() => { weapon.rotation.x = 0; }, 140);
             }
 
-            // スラッシュエフェクト表示
-            this.slashMesh.position.copy(this.mesh.position);
-            this.slashMesh.position.y += 0.8;
-            this.slashMesh.rotation.z = -this.mesh.rotation.y + Math.PI * 0.05;
+            // スラッシュエフェクト表示（this.meshの子要素なので常にプレイヤーの真正面に出る）
             this.slashMesh.visible = true;
-            this.slashMesh.material.opacity = 0.9;
-            this.slashMesh.scale.setScalar(this.attackRange / 3.5);
+            this.slashMesh.material.opacity = 0.95;
+            this.slashMesh.scale.setScalar(this.attackRange / 3.8);
             this.slashTimer = 0.18;
 
             // 攻撃判定（前方扇形）
@@ -396,10 +424,10 @@
                 const toEnemy = new THREE.Vector3().subVectors(enemy.mesh.position, this.mesh.position);
                 const dist = toEnemy.length();
 
-                if (dist <= this.attackRange) {
+                if (dist <= this.attackRange + 0.4) {
                     toEnemy.normalize();
                     const dot = forward.dot(toEnemy);
-                    if (dot > 0.35) { // 前方約140度
+                    if (dot > 0.15) { // 前方約162度の広角判定で確実にヒット
                         hitList.push(enemy);
                     }
                 }
@@ -557,14 +585,14 @@
         createCrawlerMesh() {
             const group = new THREE.Group();
 
-            // 本体（鮮やかなネオンレッド＆自発光）
+            // 本体（視認性最高の超発光エレクトリック・ライムイエロー）
             const geo = new THREE.ConeGeometry(0.95, 1.6, 6);
             const mat = new THREE.MeshStandardMaterial({
-                color: 0xff1744,
-                emissive: 0xff0044,
-                emissiveIntensity: 0.85,
+                color: 0xffea00,
+                emissive: 0xffd600,
+                emissiveIntensity: 0.95,
                 roughness: 0.2,
-                metalness: 0.5
+                metalness: 0.4
             });
             const m = new THREE.Mesh(geo, mat);
             m.rotation.x = Math.PI / 2;
@@ -572,16 +600,16 @@
             m.castShadow = true;
             group.add(m);
 
-            // 先端の発光スパイク
+            // 先端の発光ホワイトスパイク
             const tipGeo = new THREE.SphereGeometry(0.28, 8, 8);
             const tipMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
             const tip = new THREE.Mesh(tipGeo, tipMat);
             tip.position.set(0, 0.8, 0.9);
             group.add(tip);
 
-            // 足元のネオン警告サークル（視認性向上）
-            const ringGeo = new THREE.RingGeometry(0.9, 1.25, 24);
-            const ringMat = new THREE.MeshBasicMaterial({ color: 0xff0055, side: THREE.DoubleSide });
+            // 足元のネオン警告サークル（蛍光イエロー光輪）
+            const ringGeo = new THREE.RingGeometry(0.95, 1.3, 24);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xffea00, side: THREE.DoubleSide });
             const ring = new THREE.Mesh(ringGeo, ringMat);
             ring.rotation.x = -Math.PI / 2;
             ring.position.y = 0.05;
@@ -593,29 +621,29 @@
         createShooterMesh() {
             const group = new THREE.Group();
 
-            // 本体（ネオンバイオレット＆高発光）
+            // 本体（鮮烈なビビッド・ホットピンク / ネオンマゼンタ）
             const geo = new THREE.DodecahedronGeometry(1.0);
             const mat = new THREE.MeshStandardMaterial({
-                color: 0xd946ef,
-                emissive: 0xa855f7,
-                emissiveIntensity: 0.9,
+                color: 0xff007f,
+                emissive: 0xff0066,
+                emissiveIntensity: 0.95,
                 roughness: 0.2,
-                metalness: 0.6
+                metalness: 0.5
             });
             const m = new THREE.Mesh(geo, mat);
             m.castShadow = true;
             group.add(m);
 
-            // 光るシアンコアアイ（コントラスト強調）
-            const eyeGeo = new THREE.SphereGeometry(0.4, 12, 12);
+            // 光るシアンコアアイ（強烈な補色コントラスト）
+            const eyeGeo = new THREE.SphereGeometry(0.42, 12, 12);
             const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
             const eye = new THREE.Mesh(eyeGeo, eyeMat);
             eye.position.set(0, 0, 0.7);
             group.add(eye);
 
-            // 足元のネオン警告サークル
-            const ringGeo = new THREE.RingGeometry(1.1, 1.45, 24);
-            const ringMat = new THREE.MeshBasicMaterial({ color: 0xa855f7, side: THREE.DoubleSide });
+            // 足元のネオン警告サークル（ホットピンク光輪）
+            const ringGeo = new THREE.RingGeometry(1.15, 1.5, 24);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xff007f, side: THREE.DoubleSide });
             const ring = new THREE.Mesh(ringGeo, ringMat);
             ring.rotation.x = -Math.PI / 2;
             ring.position.y = 0.05;
@@ -628,30 +656,30 @@
         createTitanMesh() {
             const group = new THREE.Group();
 
-            // 超巨大ゴールドボス（発光オレンジ）
+            // 超巨大ボス（灼熱のマグマ・クリムゾンレッド）
             const bodyGeo = new THREE.BoxGeometry(2.8, 3.6, 2.8);
             const bodyMat = new THREE.MeshStandardMaterial({
-                color: 0xfbbf24,
-                emissive: 0xf59e0b,
-                emissiveIntensity: 0.7,
-                roughness: 0.3,
-                metalness: 0.7
+                color: 0xff2200,
+                emissive: 0xff1100,
+                emissiveIntensity: 0.85,
+                roughness: 0.25,
+                metalness: 0.6
             });
             const body = new THREE.Mesh(bodyGeo, bodyMat);
             body.position.y = 2.2;
             body.castShadow = true;
             group.add(body);
 
-            // 巨大バイザーアイ（鮮烈なレッド）
+            // 巨大バイザーアイ（鮮烈な高発光イエロー）
             const eyeGeo = new THREE.BoxGeometry(2.0, 0.5, 0.4);
-            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
             const eye = new THREE.Mesh(eyeGeo, eyeMat);
             eye.position.set(0, 3.1, 1.45);
             group.add(eye);
 
-            // 足元の巨大警告リング
+            // 足元の巨大警告リング（真紅のパルスリング）
             const ringGeo = new THREE.RingGeometry(2.6, 3.2, 32);
-            const ringMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide });
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xff1100, side: THREE.DoubleSide });
             const ring = new THREE.Mesh(ringGeo, ringMat);
             ring.rotation.x = -Math.PI / 2;
             ring.position.y = 0.06;
@@ -787,8 +815,9 @@
 
             if (window.soundSystem) window.soundSystem.playExplosion();
 
-            // 爆発パーティクル
-            createExplosion(this.mesh.position, this.type === 'titan' ? 0xffbb00 : 0xff0055);
+            // 爆発パーティクル（敵の色に連動）
+            const explodeColor = this.type === 'titan' ? 0xff2200 : (this.type === 'crawler' ? 0xffea00 : 0xff007f);
+            createExplosion(this.mesh.position, explodeColor);
 
             // 経験値オーブをドロップ
             const orbCount = this.type === 'titan' ? 6 : (this.type === 'shooter' ? 2 : 1);
