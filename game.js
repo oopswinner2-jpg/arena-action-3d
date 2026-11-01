@@ -157,20 +157,20 @@
             this.level = 1;
             this.exp = 0;
             this.nextExp = 10;
-            this.speed = 11;
+            this.speed = 13;
             this.damage = 35;
             this.attackRange = 4.2;
             this.attackCooldown = 0.28;
             this.lastAttackTime = 0;
 
-            this.dashCooldown = 2.0;
+            this.dashCooldown = 1.4;
             this.lastDashTime = -999;
             this.isDashing = false;
             this.dashDuration = 0.16;
             this.dashTimer = 0;
             this.dashDirection = new THREE.Vector3();
 
-            this.burstCooldown = 8.0;
+            this.burstCooldown = 6.0;
             this.lastBurstTime = -999;
 
             this.invincible = false;
