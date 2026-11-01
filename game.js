@@ -195,36 +195,76 @@
         createMesh() {
             const group = new THREE.Group();
 
-            // 胴体
-            const bodyGeo = new THREE.CylinderGeometry(0.5, 0.35, 1.2, 8);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7, roughness: 0.3 });
-            const body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.position.y = 1.0;
-            body.castShadow = true;
-            group.add(body);
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xf2c09a, roughness: 0.6 });
+            const hairMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.8 });
+            const jacketMat = new THREE.MeshStandardMaterial({ color: 0x0e7490, metalness: 0.2, roughness: 0.5 });
+            const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
+            const shoeMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.6 });
 
-            // 光る胸コア
-            const coreGeo = new THREE.SphereGeometry(0.2, 8, 8);
-            const coreMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
-            const core = new THREE.Mesh(coreGeo, coreMat);
-            core.position.set(0, 1.1, 0.4);
-            group.add(core);
+            // 脚（左右）
+            for (const side of [-1, 1]) {
+                const leg = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.85, 0.30), pantsMat);
+                leg.position.set(0.17 * side, 0.45, 0);
+                leg.castShadow = true;
+                group.add(leg);
 
-            // 頭部・バイザー
-            const headGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
-            const headMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.2 });
-            const head = new THREE.Mesh(headGeo, headMat);
-            head.position.y = 1.9;
+                const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.14, 0.44), shoeMat);
+                shoe.position.set(0.17 * side, 0.07, 0.06);
+                group.add(shoe);
+            }
+
+            // 胴体（ジャケット）
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.95, 0.48), jacketMat);
+            torso.position.y = 1.30;
+            torso.castShadow = true;
+            group.add(torso);
+
+            // 胸のエンブレム（発光）
+            const emblem = new THREE.Mesh(
+                new THREE.SphereGeometry(0.11, 8, 8),
+                new THREE.MeshBasicMaterial({ color: 0x00f0ff })
+            );
+            emblem.position.set(0, 1.42, 0.25);
+            emblem.scale.z = 0.4;
+            group.add(emblem);
+
+            // 腕（左右）と手
+            for (const side of [-1, 1]) {
+                const arm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.78, 0.26), jacketMat);
+                arm.position.set(0.55 * side, 1.28, 0);
+                arm.castShadow = true;
+                group.add(arm);
+
+                const hand = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8), skinMat);
+                hand.position.set(0.55 * side, 0.85, 0);
+                group.add(hand);
+            }
+
+            // 首と頭（肌色の球体）
+            const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.16, 8), skinMat);
+            neck.position.y = 1.83;
+            group.add(neck);
+
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 16), skinMat);
+            head.position.set(0, 2.06, 0.02);
             head.castShadow = true;
             group.add(head);
 
-            const visorGeo = new THREE.BoxGeometry(0.5, 0.18, 0.2);
-            const visorMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
-            const visor = new THREE.Mesh(visorGeo, visorMat);
-            visor.position.set(0, 1.9, 0.25);
-            group.add(visor);
+            // 髪（頭の上と後ろを覆う）
+            const hair = new THREE.Mesh(new THREE.SphereGeometry(0.345, 16, 16), hairMat);
+            hair.position.set(0, 2.13, -0.05);
+            hair.scale.set(1, 0.85, 1);
+            group.add(hair);
 
-            // エナジーブレード（剣）
+            // 目（顔の向きが分かるように）
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111827 });
+            for (const side of [-1, 1]) {
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 6), eyeMat);
+                eye.position.set(0.11 * side, 2.08, 0.325);
+                group.add(eye);
+            }
+
+            // エナジーブレード（剣）— 右手に持たせる
             const bladeGroup = new THREE.Group();
             const hiltGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.5, 8);
             const hiltMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
@@ -239,7 +279,7 @@
             blade.rotation.z = -Math.PI / 8;
             bladeGroup.add(blade);
 
-            bladeGroup.position.set(0.7, 1.0, 0.3);
+            bladeGroup.position.set(0.55, 0.9, 0.25);
             bladeGroup.name = 'weapon';
             group.add(bladeGroup);
 
